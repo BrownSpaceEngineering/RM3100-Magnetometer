@@ -1,5 +1,5 @@
-#include <Arduino.h>
-#include <SPI.h>
+//#include <Arduino.h>
+//#include <SPI.h>
 
 //pin definitions
 #define PIN_DRDY 9 //Set pin D9 to be the Data Ready Pin
@@ -169,4 +169,56 @@ void changeCycleCount(uint16_t newCC){
   SPI.transfer(CCMSB);  //write new cycle count to ccz1
   SPI.transfer(CCLSB);  //write new cycle count to ccz0
   digitalWrite(PIN_CS, HIGH);
+}
+
+// relevant looking code:
+
+
+unsigned char bus_read(int address, int CS)
+{
+    unsigned char value;
+    CS_LOW(CS);
+    spiSendReceive(address);
+    value = spiSendReceive(0x00);
+    CS_HIGH(CS);
+    return value;
+}
+
+unsigned char bus_write(int address, int value, int CS)
+{
+    CS_LOW(CS);
+    spiSendReceive(address);
+    spiSendReceive(value);
+    CS_HIGH(CS);
+    return 1;
+}
+
+// Write via SPI/DSP communication
+unsigned char read_reg(unsigned char addr, int CS)
+{
+    unsigned char readData;
+    readData = bus_read(addr & 0x7F, CS);
+    return readData;
+}
+
+// Write via SPI/DSP communication
+void write_reg(unsigned char addr, unsigned char data, int CS)
+{
+    bus_write(addr | 0x80, data, CS);
+}
+
+unsigned char read_fifo(int CS)
+{
+    unsigned char data;
+    data = bus_read(SINGLE_FIFO_READ, CS);
+    return data;
+}
+void set_fifo_burst()
+{
+    spiSendReceive(BURST_FIFO_READ);
+}
+
+void flush_fifo(int CS)
+{
+    write_reg(ARDUCHIP_FIFO, FIFO_CLEAR_MASK, CS);
 }
